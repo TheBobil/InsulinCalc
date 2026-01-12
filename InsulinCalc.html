@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Insulin Dose Calculator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .header-buttons {
+            position: absolute;
+            top: 30px;
+            right: 30px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .icon-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 20px;
+            transition: background 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .icon-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .input-group {
+            margin-bottom: 25px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        .input-group select {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .unit {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .calculate-btn {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 10px;
+        }
+
+        .calculate-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .calculate-btn:active {
+            transform: translateY(0);
+        }
+
+        .result {
+            margin-top: 30px;
+            padding: 25px;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            border-radius: 15px;
+            text-align: center;
+            display: none;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .result.show {
+            display: block;
+        }
+
+        .result h2 {
+            color: white;
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+
+        .dose-value {
+            font-size: 48px;
+            font-weight: bold;
+            color: white;
+            margin: 10px 0;
+        }
+
+        .dose-unit {
+            font-size: 18px;
+            color: white;
+            opacity: 0.9;
+        }
+
+        .breakdown {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 2px solid rgba(255, 255, 255, 0.3);
+            font-size: 14px;
+            color: white;
+        }
+
+        .breakdown-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 8px 0;
+        }
+
+        .warning {
+            margin-top: 20px;
+            padding: 15px;
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            border-radius: 5px;
+            font-size: 12px;
+            color: #856404;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: slideUp 0.3s;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            font-size: 24px;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 28px;
+            cursor: pointer;
+            width: 35px;
+            height: 35px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: background 0.2s;
+        }
+
+        .close-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .modal-body {
+            padding: 30px;
+        }
+
+        .save-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+
+        .save-btn:hover {
+            opacity: 0.9;
+        }
+
+        .info-text {
+            font-size: 13px;
+            color: #666;
+            margin-top: 8px;
+            line-height: 1.4;
+        }
+
+        .disclaimer {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            font-size: 12px;
+            color: #666;
+            line-height: 1.6;
+        }
+
+        .disclaimer strong {
+            color: #333;
+        }
+
+        /* History Styles */
+        .history-empty {
+            text-align: center;
+            padding: 40px 20px;
+            color: #999;
+        }
+
+        .history-empty-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
+        .history-item {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-left: 4px solid #667eea;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .history-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .history-date {
+            font-size: 13px;
+            color: #666;
+        }
+
+        .history-dose {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .history-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .history-detail-item {
+            font-size: 13px;
+        }
+
+        .history-detail-label {
+            color: #666;
+            display: block;
+            margin-bottom: 3px;
+        }
+
+        .history-detail-value {
+            color: #333;
+            font-weight: 600;
+        }
+
+        .clear-history-btn {
+            width: 100%;
+            padding: 12px;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+
+        .clear-history-btn:hover {
+            background: #c82333;
+        }
+
+        .history-stats {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            color: white;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: bold;
+            display: block;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            opacity: 0.9;
+            margin-top: 5px;
+        }
+
+        .delete-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .delete-btn:hover {
+            background: #c82333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-buttons">
+                <button class="icon-btn" id="historyBtn" title="History">📊</button>
+                <button class="icon-btn" id="settingsBtn" title="Settings">⚙️</button>
+            </div>
+            <h1>Insulin Calculator</h1>
+            <p>Calculate your insulin dose</p>
+        </div>
+
+        <div class="content">
+            <div class="input-group">
+                <label for="carbs">Carbohydrates</label>
+                <input type="number" id="carbs" placeholder="Enter total carbs" step="1" min="0">
+                <div class="unit">grams (g)</div>
+            </div>
+
+            <div class="input-group">
+                <label for="bloodSugar">Current Blood Sugar</label>
+                <input type="number" id="bloodSugar" placeholder="Enter current blood sugar" step="0.1" min="0">
+                <div class="unit">mg/dL or mmol/L (set in settings)</div>
+            </div>
+
+            <button class="calculate-btn" id="calculateBtn">Calculate Dose</button>
+
+            <div class="result" id="result">
+                <h2>Recommended Insulin Dose</h2>
+                <div class="dose-value" id="doseValue">0.0</div>
+                <div class="dose-unit">units</div>
+                
+                <div class="breakdown" id="breakdown">
+                    <div class="breakdown-item">
+                        <span>Carb Coverage:</span>
+                        <span id="carbDose">0.0 units</span>
+                    </div>
+                    <div class="breakdown-item">
+                        <span>Correction Dose:</span>
+                        <span id="correctionDose">0.0 units</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="warning">
+                ⚠️ <strong>Important:</strong> This calculator is for educational purposes only. Always consult with your healthcare provider before making any changes to your insulin regimen.
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal" id="settingsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Settings</h2>
+                <button class="close-btn" id="closeSettingsBtn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="input-group">
+                    <label for="targetBS">Target Blood Sugar</label>
+                    <input type="number" id="targetBS" step="1" min="0">
+                    <div class="info-text">Your ideal blood sugar level (typically 100 mg/dL or 5.5 mmol/L)</div>
+                </div>
+
+                <div class="input-group">
+                    <label for="carbRatio">Insulin-to-Carb Ratio (ICR)</label>
+                    <input type="number" id="carbRatio" step="1" min="1">
+                    <div class="info-text">How many grams of carbs covered by 1 unit of insulin (e.g., 1:10 means enter 10)</div>
+                </div>
+
+                <div class="input-group">
+                    <label for="correctionFactor">Correction Factor (ISF)</label>
+                    <input type="number" id="correctionFactor" step="1" min="1">
+                    <div class="info-text">How much 1 unit of insulin lowers blood sugar (e.g., 50 mg/dL or 3 mmol/L)</div>
+                </div>
+
+                <div class="input-group">
+                    <label for="units">Blood Sugar Units</label>
+                    <select id="units">
+                        <option value="mgdl">mg/dL (US standard)</option>
+                        <option value="mmol">mmol/L (International)</option>
+                    </select>
+                </div>
+
+                <button class="save-btn" id="saveSettingsBtn">Save Settings</button>
+
+                <div class="disclaimer">
+                    <strong>Medical Disclaimer:</strong> This app is designed for educational and informational purposes only. It is not intended to replace professional medical advice, diagnosis, or treatment. Always seek the advice of your physician or other qualified health provider with any questions you may have regarding your diabetes management. Never disregard professional medical advice or delay in seeking it because of information from this app.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- History Modal -->
+    <div class="modal" id="historyModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Dose History</h2>
+                <button class="close-btn" id="closeHistoryBtn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="historyStats"></div>
+                <div id="historyList"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Default settings
+        const defaultSettings = {
+            targetBS: 100,
+            carbRatio: 10,
+            correctionFactor: 50,
+            units: 'mgdl'
+        };
+
+        // Load settings from localStorage or use defaults
+        function loadSettings() {
+            const saved = localStorage.getItem('insulinCalcSettings');
+            if (saved) {
+                return JSON.parse(saved);
+            }
+            return defaultSettings;
+        }
+
+        // Save settings to localStorage
+        function saveSettingsToStorage(settings) {
+            localStorage.setItem('insulinCalcSettings', JSON.stringify(settings));
+        }
+
+        // Load history from localStorage
+        function loadHistory() {
+            const saved = localStorage.getItem('insulinCalcHistory');
+            if (saved) {
+                return JSON.parse(saved);
+            }
+            return [];
+        }
+
+        // Save history to localStorage
+        function saveHistory(history) {
+            localStorage.setItem('insulinCalcHistory', JSON.stringify(history));
+        }
+
+        // Add entry to history
+        function addToHistory(entry) {
+            const history = loadHistory();
+            history.unshift(entry);
+            if (history.length > 100) {
+                history.pop();
+            }
+            saveHistory(history);
+        }
+
+        // Initialize settings on page load
+        function initializeSettings() {
+            const settings = loadSettings();
+            document.getElementById('targetBS').value = settings.targetBS;
+            document.getElementById('carbRatio').value = settings.carbRatio;
+            document.getElementById('correctionFactor').value = settings.correctionFactor;
+            document.getElementById('units').value = settings.units;
+        }
+
+        // Open settings modal
+        function openSettings() {
+            document.getElementById('settingsModal').classList.add('show');
+            initializeSettings();
+        }
+
+        // Close settings modal
+        function closeSettings() {
+            document.getElementById('settingsModal').classList.remove('show');
+        }
+
+        // Save settings
+        function saveSettings() {
+            const settings = {
+                targetBS: parseFloat(document.getElementById('targetBS').value),
+                carbRatio: parseFloat(document.getElementById('carbRatio').value),
+                correctionFactor: parseFloat(document.getElementById('correctionFactor').value),
+                units: document.getElementById('units').value
+            };
+
+            if (isNaN(settings.targetBS) || settings.targetBS <= 0) {
+                alert('Please enter a valid target blood sugar');
+                return;
+            }
+            if (isNaN(settings.carbRatio) || settings.carbRatio <= 0) {
+                alert('Please enter a valid insulin-to-carb ratio');
+                return;
+            }
+            if (isNaN(settings.correctionFactor) || settings.correctionFactor <= 0) {
+                alert('Please enter a valid correction factor');
+                return;
+            }
+
+            saveSettingsToStorage(settings);
+            
+            const btn = document.getElementById('saveSettingsBtn');
+            const originalText = btn.textContent;
+            btn.textContent = '✓ Saved!';
+            btn.style.background = '#28a745';
+            setTimeout(() => {
+                closeSettings();
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.style.background = '';
+                }, 300);
+            }, 1000);
+        }
+
+        // Calculate insulin dose
+        function calculateDose() {
+            const settings = loadSettings();
+            
+            const carbs = parseFloat(document.getElementById('carbs').value);
+            const bloodSugar = parseFloat(document.getElementById('bloodSugar').value);
+
+            if (isNaN(carbs) || carbs < 0) {
+                alert('Please enter a valid carbohydrate amount');
+                return;
+            }
+            if (isNaN(bloodSugar) || bloodSugar < 0) {
+                alert('Please enter a valid blood sugar level');
+                return;
+            }
+
+            const carbDose = carbs / settings.carbRatio;
+            const bgDifference = bloodSugar - settings.targetBS;
+            const correctionDose = bgDifference / settings.correctionFactor;
+            const totalDose = Math.max(0, carbDose + correctionDose);
+
+            document.getElementById('doseValue').textContent = totalDose.toFixed(1);
+            document.getElementById('carbDose').textContent = carbDose.toFixed(1) + ' units';
+            document.getElementById('correctionDose').textContent = correctionDose.toFixed(1) + ' units';
+            
+            const resultDiv = document.getElementById('result');
+            resultDiv.classList.remove('show');
+            setTimeout(() => {
+                resultDiv.classList.add('show');
+            }, 10);
+
+            const historyEntry = {
+                timestamp: new Date().toISOString(),
+                carbs: carbs,
+                bloodSugar: bloodSugar,
+                dose: totalDose,
+                carbDose: carbDose,
+                correctionDose: correctionDose,
+                settings: {
+                    targetBS: settings.targetBS,
+                    carbRatio: settings.carbRatio,
+                    correctionFactor: settings.correctionFactor,
+                    units: settings.units
+                }
+            };
+            addToHistory(historyEntry);
+
+            resultDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        // Format date for display
+        function formatDate(isoString) {
+            const date = new Date(isoString);
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMs / 3600000);
+            const diffDays = Math.floor(diffMs / 86400000);
+
+            if (diffMins < 1) return 'Just now';
+            if (diffMins < 60) return `${diffMins} min${diffMins > 1 ? 's' : ''} ago`;
+            if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+            if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+            
+            return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+
+        // Calculate statistics
+        function calculateStats(history) {
+            if (history.length === 0) return null;
+
+            const totalDoses = history.length;
+            const avgDose = history.reduce((sum, entry) => sum + entry.dose, 0) / totalDoses;
+            const avgBS = history.reduce((sum, entry) => sum + entry.bloodSugar, 0) / totalDoses;
+            const avgCarbs = history.reduce((sum, entry) => sum + entry.carbs, 0) / totalDoses;
+
+            return {
+                totalDoses,
+                avgDose: avgDose.toFixed(1),
+                avgBS: avgBS.toFixed(1),
+                avgCarbs: avgCarbs.toFixed(0)
+            };
+        }
+
+        // Display history
+        function displayHistory() {
+            const history = loadHistory();
+            const historyList = document.getElementById('historyList');
+            const historyStats = document.getElementById('historyStats');
+
+            if (history.length === 0) {
+                historyList.innerHTML = `
+                    <div class="history-empty">
+                        <div class="history-empty-icon">📊</div>
+                        <p>No history yet</p>
+                        <p style="font-size: 12px; margin-top: 10px;">Your dose calculations will appear here</p>
+                    </div>
+                `;
+                historyStats.innerHTML = '';
+                return;
+            }
+
+            const stats = calculateStats(history);
+            historyStats.innerHTML = `
+                <div class="history-stats">
+                    <h3 style="margin-bottom: 10px;">Statistics</h3>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <span class="stat-value">${stats.totalDoses}</span>
+                            <span class="stat-label">Total Doses</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value">${stats.avgDose}</span>
+                            <span class="stat-label">Avg Dose (units)</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value">${stats.avgBS}</span>
+                            <span class="stat-label">Avg Blood Sugar</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value">${stats.avgCarbs}</span>
+                            <span class="stat-label">Avg Carbs (g)</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            let html = '';
+            history.forEach((entry, index) => {
+                html += `
+                    <div class="history-item">
+                        <div class="history-header">
+                            <div class="history-date">${formatDate(entry.timestamp)}</div>
+                            <button class="delete-btn" data-index="${index}">Delete</button>
+                        </div>
+                        <div class="history-dose">${entry.dose.toFixed(1)} units</div>
+                        <div class="history-details">
+                            <div class="history-detail-item">
+                                <span class="history-detail-label">Blood Sugar</span>
+                                <span class="history-detail-value">${entry.bloodSugar} ${entry.settings.units === 'mgdl' ? 'mg/dL' : 'mmol/L'}</span>
+                            </div>
+                            <div class="history-detail-item">
+                                <span class="history-detail-label">Carbs</span>
+                                <span class="history-detail-value">${entry.carbs}g</span>
+                            </div>
+                            <div class="history-detail-item">
+                                <span class="history-detail-label">Carb Dose</span>
+                                <span class="history-detail-value">${entry.carbDose.toFixed(1)}u</span>
+                            </div>
+                            <div class="history-detail-item">
+                                <span class="history-detail-label">Correction</span>
+                                <span class="history-detail-value">${entry.correctionDose.toFixed(1)}u</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += `<button class="clear-history-btn" id="clearHistoryBtn">Clear All History</button>`;
+            historyList.innerHTML = html;
+
+            // Add event listeners to delete buttons
+            document.querySelectorAll('.delete-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const index = parseInt(this.getAttribute('data-index'));
+                    deleteHistoryEntry(index);
+                });
+            });
+
+            // Add event listener to clear history button
+            const clearBtn = document.getElementById('clearHistoryBtn');
+            if (clearBtn) {
+                clearBtn.addEventListener('click', clearHistory);
+            }
+        }
+
+        // Open history modal
+        function openHistory() {
+            document.getElementById('historyModal').classList.add('show');
+            displayHistory();
+        }
+
+        // Close history modal
+        function closeHistory() {
+            document.getElementById('historyModal').classList.remove('show');
+        }
+
+        // Delete single history entry
+        function deleteHistoryEntry(index) {
+            if (confirm('Delete this entry?')) {
+                const history = loadHistory();
+                history.splice(index, 1);
+                saveHistory(history);
+                displayHistory();
+            }
+        }
+
+        // Clear all history
+        function clearHistory() {
+            if (confirm('Are you sure you want to clear all history? This cannot be undone.')) {
+                saveHistory([]);
+                displayHistory();
+            }
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Page loaded, initializing...');
+            
+            initializeSettings();
+            
+            // Add event listeners
+            document.getElementById('settingsBtn').addEventListener('click', openSettings);
+            document.getElementById('closeSettingsBtn').addEventListener('click', closeSettings);
+            document.getElementById('saveSettingsBtn').addEventListener('click', saveSettings);
+            
+            document.getElementById('historyBtn').addEventListener('click', openHistory);
+            document.getElementById('closeHistoryBtn').addEventListener('click', closeHistory);
+            
+            document.getElementById('calculateBtn').addEventListener('click', calculateDose);
+
+            // Handle Enter key
+            const inputs = document.querySelectorAll('input[type="number"]');
+            inputs.forEach(input => {
+                input.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        if (this.closest('#settingsModal')) {
+                            saveSettings();
+                        } else {
+                            calculateDose();
+                        }
+                    }
+                });
+            });
+
+            // Close modals when clicking outside
+            document.getElementById('settingsModal').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closeSettings();
+                }
+            });
+
+            document.getElementById('historyModal').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closeHistory();
+                }
+            });
+
+            console.log('Initialization complete!');
+        });
+    </script>
+</body>
+</html>
