@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Insulin Dose Calculator</title>
-    <script src="https://unpkg.com/@zxing/browser@0.1.5/umd/index.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -376,7 +376,7 @@
         <p>Point your camera at the barcode on the packaging</p>
     </div>
     <div class="scanner-viewport-wrapper">
-        <video id="scannerVideo" playsinline autoplay muted></video>
+        <div id="scannerVideo"></div>
         <div class="scanner-overlay">
             <div class="scanner-frame">
                 <div class="scanner-line"></div>
@@ -518,7 +518,7 @@ async function searchFood() {
 }
 
 // Barcode scanner
-let codeReader = null;
+let html5Scanner = null;
 
 async function openScanner() {
     const modal = document.getElementById('scannerModal');
@@ -528,31 +528,52 @@ async function openScanner() {
     statusEl.textContent = 'Initialising camera…';
 
     try {
-        codeReader = new ZXingBrowser.BrowserMultiFormatReader();
-        const devices = await ZXingBrowser.BrowserCodeReader.listVideoInputDevices();
-        const back = devices.find(d => /back|rear|environment/i.test(d.label)) || devices[devices.length - 1];
+        html5Scanner = new Html5Qrcode('scannerVideo');
+
+        const config = {
+            fps: 10,
+            qrbox: { width: 250, height: 120 },
+            aspectRatio: 1.0,
+            formatsToSupport: [
+                Html5QrcodeSupportedFormats.EAN_13,
+                Html5QrcodeSupportedFormats.EAN_8,
+                Html5QrcodeSupportedFormats.UPC_A,
+                Html5QrcodeSupportedFormats.UPC_E,
+                Html5QrcodeSupportedFormats.CODE_128,
+                Html5QrcodeSupportedFormats.CODE_39
+            ]
+        };
+
+        await html5Scanner.start(
+            { facingMode: 'environment' },
+            config,
+            async (decodedText) => {
+                statusEl.className = 'scanner-status success';
+                statusEl.textContent = `Detected: ${decodedText} — looking up…`;
+                await closeScanner();
+                await lookupBarcode(decodedText);
+            },
+            () => { /* ignore not-found errors */ }
+        );
 
         statusEl.textContent = 'Point camera at barcode…';
 
-        codeReader.decodeFromVideoDevice(back ? back.deviceId : undefined, 'scannerVideo', async (result, err) => {
-            if (result) {
-                const code = result.getText();
-                statusEl.className = 'scanner-status success';
-                statusEl.textContent = `Detected: ${code} — looking up…`;
-                codeReader.reset(); codeReader = null;
-                await lookupBarcode(code);
-            }
-        });
     } catch(e) {
         statusEl.className = 'scanner-status error';
-        statusEl.textContent = e.name === 'NotAllowedError'
-            ? 'Camera permission denied. Please allow camera access and try again.'
-            : 'Could not start camera. ' + e.message;
+        statusEl.textContent = e.name === 'NotAllowedError' || (e.message && e.message.includes('permission'))
+            ? 'Camera permission denied. Please allow camera access in your browser settings and try again.'
+            : 'Could not start camera: ' + (e.message || e);
     }
 }
 
-function closeScanner() {
-    if (codeReader) { codeReader.reset(); codeReader = null; }
+async function closeScanner() {
+    if (html5Scanner) {
+        try {
+            if (html5Scanner.isScanning) await html5Scanner.stop();
+        } catch(e) { /* ignore stop errors */ }
+        html5Scanner.clear();
+        html5Scanner = null;
+    }
     document.getElementById('scannerModal').classList.remove('show');
 }
 
@@ -705,7 +726,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('carbs').focus();
     });
     document.getElementById('barcodeBtn').addEventListener('click', openScanner);
-    document.getElementById('scannerCloseBtn').addEventListener('click', closeScanner);
+    document.getElementById('scannerCloseBtn').addEventListener('click', () => closeScanner());
     document.querySelectorAll('input[type="number"]').forEach(input => {
         input.addEventListener('keypress', e => {
             if (e.key==='Enter' && !input.closest('.food-search-section') && !input.closest('.food-portion-row')) {
