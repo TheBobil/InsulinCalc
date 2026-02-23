@@ -1,925 +1,722 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Insulin Dose Calculator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/zxing-js/0.21.3/zxing.min.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-        }
+```
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+    }
 
-        .container {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            max-width: 500px;
-            width: 100%;
-            overflow: hidden;
-        }
+    .container {
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        max-width: 500px;
+        width: 100%;
+        overflow: hidden;
+    }
 
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 30px;
-            text-align: center;
-            position: relative;
-        }
+    .header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 30px;
+        text-align: center;
+        position: relative;
+    }
 
-        .header h1 {
-            font-size: 28px;
-            margin-bottom: 5px;
-        }
+    .header h1 { font-size: 28px; margin-bottom: 5px; }
+    .header p { font-size: 14px; opacity: 0.9; }
 
-        .header p {
-            font-size: 14px;
-            opacity: 0.9;
-        }
+    .header-buttons {
+        position: absolute;
+        top: 30px; right: 30px;
+        display: flex; gap: 10px;
+    }
 
-        .header-buttons {
-            position: absolute;
-            top: 30px;
-            right: 30px;
-            display: flex;
-            gap: 10px;
-        }
+    .icon-btn {
+        background: rgba(255,255,255,0.2);
+        border: none; color: white;
+        width: 40px; height: 40px;
+        border-radius: 50%; cursor: pointer;
+        font-size: 20px; transition: background 0.3s;
+        display: flex; align-items: center; justify-content: center;
+    }
+    .icon-btn:hover { background: rgba(255,255,255,0.3); }
 
-        .icon-btn {
-            background: rgba(255, 255, 255, 0.2);
-            border: none;
-            color: white;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            cursor: pointer;
-            font-size: 20px;
-            transition: background 0.3s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
+    .content { padding: 30px; }
 
-        .icon-btn:hover {
-            background: rgba(255, 255, 255, 0.3);
-        }
+    .input-group { margin-bottom: 25px; }
+    .input-group label {
+        display: block; margin-bottom: 8px;
+        color: #333; font-weight: 600; font-size: 14px;
+    }
+    .input-group input, .input-group select {
+        width: 100%; padding: 15px;
+        border: 2px solid #e0e0e0; border-radius: 10px; font-size: 16px;
+        transition: border-color 0.3s;
+    }
+    .input-group input:focus { outline: none; border-color: #667eea; }
+    .unit { font-size: 12px; color: #666; margin-top: 5px; }
 
-        .content {
-            padding: 30px;
-        }
+    .calculate-btn {
+        width: 100%; padding: 18px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white; border: none; border-radius: 10px;
+        font-size: 18px; font-weight: 600; cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s; margin-top: 10px;
+    }
+    .calculate-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(102,126,234,0.3); }
+    .calculate-btn:active { transform: translateY(0); }
 
-        .input-group {
-            margin-bottom: 25px;
-        }
+    .result {
+        margin-top: 30px; padding: 25px;
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        border-radius: 15px; text-align: center;
+        display: none; animation: slideIn 0.3s ease-out;
+    }
+    @keyframes slideIn { from { opacity:0; transform:translateY(-20px); } to { opacity:1; transform:translateY(0); } }
+    .result.show { display: block; }
+    .result h2 { color: white; font-size: 18px; margin-bottom: 10px; }
+    .dose-value { font-size: 48px; font-weight: bold; color: white; margin: 10px 0; }
+    .dose-unit { font-size: 18px; color: white; opacity: 0.9; }
+    .breakdown { margin-top: 20px; padding-top: 20px; border-top: 2px solid rgba(255,255,255,0.3); font-size: 14px; color: white; }
+    .breakdown-item { display: flex; justify-content: space-between; margin: 8px 0; }
 
-        .input-group label {
-            display: block;
-            margin-bottom: 8px;
-            color: #333;
-            font-weight: 600;
-            font-size: 14px;
-        }
+    .warning {
+        margin-top: 20px; padding: 15px;
+        background: #fff3cd; border-left: 4px solid #ffc107;
+        border-radius: 5px; font-size: 12px; color: #856404;
+    }
 
-        .input-group input {
-            width: 100%;
-            padding: 15px;
-            border: 2px solid #e0e0e0;
-            border-radius: 10px;
-            font-size: 16px;
-            transition: border-color 0.3s;
-        }
+    /* Food Search */
+    .food-search-section {
+        margin-bottom: 25px;
+        background: #f8f9ff;
+        border: 2px solid #e8ecff;
+        border-radius: 14px;
+        padding: 18px;
+    }
+    .food-search-section h3 {
+        font-size: 14px; font-weight: 700; color: #667eea;
+        margin-bottom: 12px; display: flex; align-items: center; gap: 6px;
+    }
+    .food-search-row { display: flex; gap: 8px; margin-bottom: 8px; }
+    .food-search-row input {
+        flex: 1; padding: 12px 14px;
+        border: 2px solid #e0e0e0; border-radius: 10px; font-size: 15px;
+    }
+    .food-search-row input:focus { outline: none; border-color: #667eea; }
+    .btn-row { display: flex; gap: 8px; }
+    .food-search-btn {
+        flex: 1; padding: 12px 16px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white; border: none; border-radius: 10px;
+        font-size: 14px; font-weight: 600; cursor: pointer;
+    }
+    .food-search-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .barcode-btn {
+        padding: 12px 16px;
+        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        color: white; border: none; border-radius: 10px;
+        font-size: 14px; font-weight: 600; cursor: pointer;
+        display: flex; align-items: center; gap: 6px;
+    }
+    .food-search-status { font-size: 12px; color: #888; margin-top: 8px; min-height: 18px; }
+    .food-results { margin-top: 10px; max-height: 240px; overflow-y: auto; }
+    .food-result-item {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 11px 14px; background: white;
+        border: 1px solid #e8ecff; border-radius: 8px;
+        margin-bottom: 6px; cursor: pointer;
+        transition: background 0.15s, border-color 0.15s;
+    }
+    .food-result-item:hover { background: #f0f3ff; border-color: #667eea; }
+    .food-result-item.selected { background: #eef0ff; border-color: #667eea; }
+    .food-result-name { font-size: 13px; color: #333; font-weight: 500; flex: 1; padding-right: 10px; line-height: 1.3; }
+    .food-result-brand { font-size: 11px; color: #999; display: block; margin-top: 2px; }
+    .food-result-carbs { font-size: 13px; font-weight: 700; color: #667eea; white-space: nowrap; }
+    .food-portion-row {
+        display: flex; align-items: center; gap: 8px;
+        margin-top: 10px; padding: 10px 12px;
+        background: white; border: 1px solid #e8ecff; border-radius: 8px;
+        font-size: 13px; color: #444;
+    }
+    .food-portion-row input {
+        width: 70px; padding: 6px 10px;
+        border: 2px solid #e0e0e0; border-radius: 8px;
+        font-size: 14px; font-weight: 600; text-align: center;
+    }
+    .food-portion-row input:focus { outline: none; border-color: #667eea; }
+    .use-carbs-btn {
+        margin-left: auto; padding: 7px 12px;
+        background: #667eea; color: white; border: none;
+        border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer;
+    }
 
-        .input-group select {
-            width: 100%;
-            padding: 15px;
-            border: 2px solid #e0e0e0;
-            border-radius: 10px;
-            font-size: 16px;
-        }
+    /* Barcode Scanner */
+    .scanner-modal {
+        display: none; position: fixed;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.93); z-index: 2000;
+        flex-direction: column; align-items: center; justify-content: center;
+    }
+    .scanner-modal.show { display: flex; }
+    .scanner-header { color: white; text-align: center; padding: 20px; }
+    .scanner-header h2 { font-size: 20px; font-weight: 700; }
+    .scanner-header p { font-size: 13px; opacity: 0.65; margin-top: 6px; }
+    .scanner-viewport-wrapper {
+        position: relative;
+        width: min(360px, 88vw);
+        height: min(360px, 88vw);
+        border-radius: 16px; overflow: hidden; background: #000;
+    }
+    #scannerVideo { width: 100%; height: 100%; object-fit: cover; }
+    .scanner-overlay {
+        position: absolute; inset: 0;
+        display: flex; align-items: center; justify-content: center;
+        pointer-events: none;
+    }
+    .scanner-frame {
+        width: 70%; height: 28%;
+        border: 3px solid #38ef7d; border-radius: 8px;
+        box-shadow: 0 0 0 2000px rgba(0,0,0,0.4);
+        position: relative; overflow: hidden;
+    }
+    .scanner-line {
+        position: absolute; left: 0; right: 0; height: 2px;
+        background: linear-gradient(90deg, transparent, #38ef7d, transparent);
+        animation: scanLine 1.8s linear infinite;
+    }
+    @keyframes scanLine {
+        0%   { top: 0; opacity: 1; }
+        90%  { top: calc(100% - 2px); opacity: 1; }
+        100% { top: calc(100% - 2px); opacity: 0; }
+    }
+    .scanner-status {
+        color: rgba(255,255,255,0.8); font-size: 14px;
+        margin-top: 18px; text-align: center;
+        padding: 0 24px; min-height: 44px; line-height: 1.5;
+    }
+    .scanner-status.success { color: #38ef7d; font-weight: 600; }
+    .scanner-status.error   { color: #f5576c; }
+    .scanner-close-btn {
+        margin-top: 20px; padding: 13px 40px;
+        background: rgba(255,255,255,0.12); color: white;
+        border: 2px solid rgba(255,255,255,0.25); border-radius: 50px;
+        font-size: 16px; font-weight: 600; cursor: pointer;
+    }
 
-        .input-group input:focus {
-            outline: none;
-            border-color: #667eea;
-        }
+    /* Modals */
+    .modal {
+        display: none; position: fixed;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.5); z-index: 1000;
+        justify-content: center; align-items: center;
+    }
+    .modal.show { display: flex; }
+    .modal-content {
+        background: white; border-radius: 20px;
+        max-width: 500px; width: 90%; max-height: 90vh; overflow-y: auto;
+    }
+    .modal-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white; padding: 25px 30px;
+        display: flex; justify-content: space-between; align-items: center;
+        border-radius: 20px 20px 0 0;
+    }
+    .modal-header h2 { font-size: 24px; }
+    .close-btn {
+        background: none; border: none; color: white; font-size: 28px;
+        cursor: pointer; width: 35px; height: 35px;
+        display: flex; align-items: center; justify-content: center; border-radius: 50%;
+    }
+    .close-btn:hover { background: rgba(255,255,255,0.2); }
+    .modal-body { padding: 30px; }
+    .save-btn {
+        width: 100%; padding: 15px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white; border: none; border-radius: 10px;
+        font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 20px;
+    }
+    .info-text { font-size: 13px; color: #666; margin-top: 8px; line-height: 1.4; }
+    .disclaimer {
+        background: #f8f9fa; padding: 15px; border-radius: 10px;
+        margin-top: 20px; font-size: 12px; color: #666; line-height: 1.6;
+    }
+    .disclaimer strong { color: #333; }
 
-        .unit {
-            font-size: 12px;
-            color: #666;
-            margin-top: 5px;
-        }
+    /* History */
+    .history-empty { text-align: center; padding: 40px 20px; color: #999; }
+    .history-empty-icon { font-size: 48px; margin-bottom: 15px; }
+    .history-item {
+        background: #f8f9fa; border-radius: 12px; padding: 20px;
+        margin-bottom: 15px; border-left: 4px solid #667eea;
+    }
+    .history-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+    .history-date { font-size: 13px; color: #666; }
+    .history-dose { font-size: 24px; font-weight: bold; color: #667eea; }
+    .history-details {
+        display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+        margin-top: 10px; padding-top: 10px; border-top: 1px solid #e0e0e0;
+    }
+    .history-detail-item { font-size: 13px; }
+    .history-detail-label { color: #666; display: block; margin-bottom: 3px; }
+    .history-detail-value { color: #333; font-weight: 600; }
+    .clear-history-btn {
+        width: 100%; padding: 12px; background: #dc3545; color: white;
+        border: none; border-radius: 10px; font-size: 14px;
+        font-weight: 600; cursor: pointer; margin-top: 20px;
+    }
+    .history-stats {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 12px; padding: 20px; margin-bottom: 20px; color: white;
+    }
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px; }
+    .stat-item { text-align: center; }
+    .stat-value { font-size: 28px; font-weight: bold; display: block; }
+    .stat-label { font-size: 12px; opacity: 0.9; margin-top: 5px; }
+    .delete-btn {
+        background: #dc3545; color: white; border: none;
+        padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 12px;
+    }
+</style>
+```
 
-        .calculate-btn {
-            width: 100%;
-            padding: 18px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            border-radius: 10px;
-            font-size: 18px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-            margin-top: 10px;
-        }
-
-        .calculate-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
-        }
-
-        .calculate-btn:active {
-            transform: translateY(0);
-        }
-
-        .result {
-            margin-top: 30px;
-            padding: 25px;
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-            border-radius: 15px;
-            text-align: center;
-            display: none;
-            animation: slideIn 0.3s ease-out;
-        }
-
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateY(-20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .result.show {
-            display: block;
-        }
-
-        .result h2 {
-            color: white;
-            font-size: 18px;
-            margin-bottom: 10px;
-        }
-
-        .dose-value {
-            font-size: 48px;
-            font-weight: bold;
-            color: white;
-            margin: 10px 0;
-        }
-
-        .dose-unit {
-            font-size: 18px;
-            color: white;
-            opacity: 0.9;
-        }
-
-        .breakdown {
-            margin-top: 20px;
-            padding-top: 20px;
-            border-top: 2px solid rgba(255, 255, 255, 0.3);
-            font-size: 14px;
-            color: white;
-        }
-
-        .breakdown-item {
-            display: flex;
-            justify-content: space-between;
-            margin: 8px 0;
-        }
-
-        .warning {
-            margin-top: 20px;
-            padding: 15px;
-            background: #fff3cd;
-            border-left: 4px solid #ffc107;
-            border-radius: 5px;
-            font-size: 12px;
-            color: #856404;
-        }
-
-        /* Modal Styles */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-            animation: fadeIn 0.3s;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-
-        .modal.show {
-            display: flex;
-        }
-
-        .modal-content {
-            background: white;
-            border-radius: 20px;
-            max-width: 500px;
-            width: 90%;
-            max-height: 90vh;
-            overflow-y: auto;
-            animation: slideUp 0.3s;
-        }
-
-        @keyframes slideUp {
-            from {
-                transform: translateY(50px);
-                opacity: 0;
-            }
-            to {
-                transform: translateY(0);
-                opacity: 1;
-            }
-        }
-
-        .modal-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 25px 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .modal-header h2 {
-            font-size: 24px;
-        }
-
-        .close-btn {
-            background: none;
-            border: none;
-            color: white;
-            font-size: 28px;
-            cursor: pointer;
-            width: 35px;
-            height: 35px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 50%;
-            transition: background 0.2s;
-        }
-
-        .close-btn:hover {
-            background: rgba(255, 255, 255, 0.2);
-        }
-
-        .modal-body {
-            padding: 30px;
-        }
-
-        .save-btn {
-            width: 100%;
-            padding: 15px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            border-radius: 10px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            margin-top: 20px;
-        }
-
-        .save-btn:hover {
-            opacity: 0.9;
-        }
-
-        .info-text {
-            font-size: 13px;
-            color: #666;
-            margin-top: 8px;
-            line-height: 1.4;
-        }
-
-        .disclaimer {
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 10px;
-            margin-top: 20px;
-            font-size: 12px;
-            color: #666;
-            line-height: 1.6;
-        }
-
-        .disclaimer strong {
-            color: #333;
-        }
-
-        /* History Styles */
-        .history-empty {
-            text-align: center;
-            padding: 40px 20px;
-            color: #999;
-        }
-
-        .history-empty-icon {
-            font-size: 48px;
-            margin-bottom: 15px;
-        }
-
-        .history-item {
-            background: #f8f9fa;
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 15px;
-            border-left: 4px solid #667eea;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-
-        .history-item:hover {
-            transform: translateX(5px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        }
-
-        .history-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-
-        .history-date {
-            font-size: 13px;
-            color: #666;
-        }
-
-        .history-dose {
-            font-size: 24px;
-            font-weight: bold;
-            color: #667eea;
-        }
-
-        .history-details {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-top: 10px;
-            padding-top: 10px;
-            border-top: 1px solid #e0e0e0;
-        }
-
-        .history-detail-item {
-            font-size: 13px;
-        }
-
-        .history-detail-label {
-            color: #666;
-            display: block;
-            margin-bottom: 3px;
-        }
-
-        .history-detail-value {
-            color: #333;
-            font-weight: 600;
-        }
-
-        .clear-history-btn {
-            width: 100%;
-            padding: 12px;
-            background: #dc3545;
-            color: white;
-            border: none;
-            border-radius: 10px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            margin-top: 20px;
-        }
-
-        .clear-history-btn:hover {
-            background: #c82333;
-        }
-
-        .history-stats {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 20px;
-            color: white;
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin-top: 15px;
-        }
-
-        .stat-item {
-            text-align: center;
-        }
-
-        .stat-value {
-            font-size: 28px;
-            font-weight: bold;
-            display: block;
-        }
-
-        .stat-label {
-            font-size: 12px;
-            opacity: 0.9;
-            margin-top: 5px;
-        }
-
-        .delete-btn {
-            background: #dc3545;
-            color: white;
-            border: none;
-            padding: 5px 10px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 12px;
-        }
-
-        .delete-btn:hover {
-            background: #c82333;
-        }
-    </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <div class="header-buttons">
-                <button class="icon-btn" id="historyBtn" title="History">📊</button>
-                <button class="icon-btn" id="settingsBtn" title="Settings">⚙️</button>
-            </div>
-            <h1>Insulin Calculator</h1>
-            <p>Calculate your insulin dose</p>
-        </div>
 
-        <div class="content">
+<div class="container">
+    <div class="header">
+        <div class="header-buttons">
+            <button class="icon-btn" id="historyBtn" title="History">📊</button>
+            <button class="icon-btn" id="settingsBtn" title="Settings">⚙️</button>
+        </div>
+        <h1>Insulin Calculator</h1>
+        <p>Calculate your insulin dose</p>
+    </div>
+
+```
+<div class="content">
+
+    <div class="food-search-section">
+        <h3>🔍 Food Carb Lookup</h3>
+        <div class="food-search-row">
+            <input type="text" id="foodSearchInput" placeholder="Search for a food…" autocomplete="off">
+        </div>
+        <div class="btn-row">
+            <button class="food-search-btn" id="foodSearchBtn">Search</button>
+            <button class="barcode-btn" id="barcodeBtn">📷 Scan Barcode</button>
+        </div>
+        <div class="food-search-status" id="foodSearchStatus"></div>
+        <div class="food-results" id="foodResults"></div>
+        <div class="food-portion-row" id="portionRow" style="display:none;">
+            <span>Portion:</span>
+            <input type="number" id="portionGrams" value="100" min="1" step="1">
+            <span>g → <strong id="portionCarbs">–</strong> g carbs</span>
+            <button class="use-carbs-btn" id="useCarbsBtn">Use this ↓</button>
+        </div>
+    </div>
+
+    <div class="input-group">
+        <label for="carbs">Carbohydrates</label>
+        <input type="number" id="carbs" placeholder="Enter total carbs" step="1" min="0">
+        <div class="unit">grams (g)</div>
+    </div>
+
+    <div class="input-group">
+        <label for="bloodSugar">Current Blood Sugar</label>
+        <input type="number" id="bloodSugar" placeholder="Enter current blood sugar" step="0.1" min="0">
+        <div class="unit">mg/dL or mmol/L (set in settings)</div>
+    </div>
+
+    <button class="calculate-btn" id="calculateBtn">Calculate Dose</button>
+
+    <div class="result" id="result">
+        <h2>Recommended Insulin Dose</h2>
+        <div class="dose-value" id="doseValue">0.0</div>
+        <div class="dose-unit">units</div>
+        <div class="breakdown">
+            <div class="breakdown-item">
+                <span>Carb Coverage:</span>
+                <span id="carbDose">0.0 units</span>
+            </div>
+            <div class="breakdown-item">
+                <span>Correction Dose:</span>
+                <span id="correctionDose">0.0 units</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="warning">
+        ⚠️ <strong>Important:</strong> This calculator is for educational purposes only. Always consult with your healthcare provider before making any changes to your insulin regimen.
+    </div>
+</div>
+```
+
+</div>
+
+<!-- Barcode Scanner -->
+
+<div class="scanner-modal" id="scannerModal">
+    <div class="scanner-header">
+        <h2>Scan Barcode</h2>
+        <p>Point your camera at the barcode on the packaging</p>
+    </div>
+    <div class="scanner-viewport-wrapper">
+        <video id="scannerVideo" playsinline autoplay muted></video>
+        <div class="scanner-overlay">
+            <div class="scanner-frame">
+                <div class="scanner-line"></div>
+            </div>
+        </div>
+    </div>
+    <div class="scanner-status" id="scannerStatus">Initialising camera…</div>
+    <button class="scanner-close-btn" id="scannerCloseBtn">Cancel</button>
+</div>
+
+<!-- Settings Modal -->
+
+<div class="modal" id="settingsModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Settings</h2>
+            <button class="close-btn" id="closeSettingsBtn">&times;</button>
+        </div>
+        <div class="modal-body">
             <div class="input-group">
-                <label for="carbs">Carbohydrates</label>
-                <input type="number" id="carbs" placeholder="Enter total carbs" step="1" min="0">
-                <div class="unit">grams (g)</div>
+                <label for="targetBS">Target Blood Sugar</label>
+                <input type="number" id="targetBS" step="1" min="0">
+                <div class="info-text">Your ideal blood sugar level (typically 100 mg/dL or 5.5 mmol/L)</div>
             </div>
-
             <div class="input-group">
-                <label for="bloodSugar">Current Blood Sugar</label>
-                <input type="number" id="bloodSugar" placeholder="Enter current blood sugar" step="0.1" min="0">
-                <div class="unit">mg/dL or mmol/L (set in settings)</div>
+                <label for="carbRatio">Insulin-to-Carb Ratio (ICR)</label>
+                <input type="number" id="carbRatio" step="1" min="1">
+                <div class="info-text">How many grams of carbs covered by 1 unit of insulin (e.g., 1:10 means enter 10)</div>
             </div>
-
-            <button class="calculate-btn" id="calculateBtn">Calculate Dose</button>
-
-            <div class="result" id="result">
-                <h2>Recommended Insulin Dose</h2>
-                <div class="dose-value" id="doseValue">0.0</div>
-                <div class="dose-unit">units</div>
-                
-                <div class="breakdown" id="breakdown">
-                    <div class="breakdown-item">
-                        <span>Carb Coverage:</span>
-                        <span id="carbDose">0.0 units</span>
-                    </div>
-                    <div class="breakdown-item">
-                        <span>Correction Dose:</span>
-                        <span id="correctionDose">0.0 units</span>
-                    </div>
-                </div>
+            <div class="input-group">
+                <label for="correctionFactor">Correction Factor (ISF)</label>
+                <input type="number" id="correctionFactor" step="1" min="1">
+                <div class="info-text">How much 1 unit of insulin lowers blood sugar (e.g., 50 mg/dL or 3 mmol/L)</div>
             </div>
-
-            <div class="warning">
-                ⚠️ <strong>Important:</strong> This calculator is for educational purposes only. Always consult with your healthcare provider before making any changes to your insulin regimen.
+            <div class="input-group">
+                <label for="units">Blood Sugar Units</label>
+                <select id="units">
+                    <option value="mgdl">mg/dL (US standard)</option>
+                    <option value="mmol">mmol/L (International)</option>
+                </select>
+            </div>
+            <button class="save-btn" id="saveSettingsBtn">Save Settings</button>
+            <div class="disclaimer">
+                <strong>Medical Disclaimer:</strong> This app is designed for educational and informational purposes only. It is not intended to replace professional medical advice. Always consult your physician regarding your diabetes management.
             </div>
         </div>
     </div>
+</div>
 
-    <!-- Settings Modal -->
-    <div class="modal" id="settingsModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Settings</h2>
-                <button class="close-btn" id="closeSettingsBtn">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div class="input-group">
-                    <label for="targetBS">Target Blood Sugar</label>
-                    <input type="number" id="targetBS" step="1" min="0">
-                    <div class="info-text">Your ideal blood sugar level (typically 100 mg/dL or 5.5 mmol/L)</div>
-                </div>
+<!-- History Modal -->
 
-                <div class="input-group">
-                    <label for="carbRatio">Insulin-to-Carb Ratio (ICR)</label>
-                    <input type="number" id="carbRatio" step="1" min="1">
-                    <div class="info-text">How many grams of carbs covered by 1 unit of insulin (e.g., 1:10 means enter 10)</div>
-                </div>
-
-                <div class="input-group">
-                    <label for="correctionFactor">Correction Factor (ISF)</label>
-                    <input type="number" id="correctionFactor" step="1" min="1">
-                    <div class="info-text">How much 1 unit of insulin lowers blood sugar (e.g., 50 mg/dL or 3 mmol/L)</div>
-                </div>
-
-                <div class="input-group">
-                    <label for="units">Blood Sugar Units</label>
-                    <select id="units">
-                        <option value="mgdl">mg/dL (US standard)</option>
-                        <option value="mmol">mmol/L (International)</option>
-                    </select>
-                </div>
-
-                <button class="save-btn" id="saveSettingsBtn">Save Settings</button>
-
-                <div class="disclaimer">
-                    <strong>Medical Disclaimer:</strong> This app is designed for educational and informational purposes only. It is not intended to replace professional medical advice, diagnosis, or treatment. Always seek the advice of your physician or other qualified health provider with any questions you may have regarding your diabetes management. Never disregard professional medical advice or delay in seeking it because of information from this app.
-                </div>
-            </div>
+<div class="modal" id="historyModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Dose History</h2>
+            <button class="close-btn" id="closeHistoryBtn">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div id="historyStats"></div>
+            <div id="historyList"></div>
         </div>
     </div>
+</div>
 
-    <!-- History Modal -->
-    <div class="modal" id="historyModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Dose History</h2>
-                <button class="close-btn" id="closeHistoryBtn">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div id="historyStats"></div>
-                <div id="historyList"></div>
-            </div>
-        </div>
-    </div>
+<script>
+// Settings
+const defaultSettings = { targetBS: 100, carbRatio: 10, correctionFactor: 50, units: 'mgdl' };
+function loadSettings() { const s = localStorage.getItem('insulinCalcSettings'); return s ? JSON.parse(s) : defaultSettings; }
+function saveSettingsToStorage(s) { localStorage.setItem('insulinCalcSettings', JSON.stringify(s)); }
 
-    <script>
-        // Default settings
-        const defaultSettings = {
-            targetBS: 100,
-            carbRatio: 10,
-            correctionFactor: 50,
-            units: 'mgdl'
-        };
+// History
+function loadHistory() { const h = localStorage.getItem('insulinCalcHistory'); return h ? JSON.parse(h) : []; }
+function saveHistory(h) { localStorage.setItem('insulinCalcHistory', JSON.stringify(h)); }
+function addToHistory(e) { const h = loadHistory(); h.unshift(e); if (h.length > 100) h.pop(); saveHistory(h); }
 
-        // Load settings from localStorage or use defaults
-        function loadSettings() {
-            const saved = localStorage.getItem('insulinCalcSettings');
-            if (saved) {
-                return JSON.parse(saved);
-            }
-            return defaultSettings;
-        }
+// Food results shared display
+let selectedCarbs100g = null;
 
-        // Save settings to localStorage
-        function saveSettingsToStorage(settings) {
-            localStorage.setItem('insulinCalcSettings', JSON.stringify(settings));
-        }
+function displayFoodResults(products, emptyMsg) {
+    const status = document.getElementById('foodSearchStatus');
+    const results = document.getElementById('foodResults');
+    const portionRow = document.getElementById('portionRow');
+    selectedCarbs100g = null;
+    portionRow.style.display = 'none';
 
-        // Load history from localStorage
-        function loadHistory() {
-            const saved = localStorage.getItem('insulinCalcHistory');
-            if (saved) {
-                return JSON.parse(saved);
-            }
-            return [];
-        }
+    if (!products || !products.length) {
+        status.textContent = emptyMsg || 'No results found.';
+        results.innerHTML = '';
+        return;
+    }
 
-        // Save history to localStorage
-        function saveHistory(history) {
-            localStorage.setItem('insulinCalcHistory', JSON.stringify(history));
-        }
+    status.textContent = `${products.length} result${products.length > 1 ? 's' : ''} — tap one to use it`;
+    results.innerHTML = products.map((p, i) => {
+        const carbs = p.nutriments['carbohydrates_100g'].toFixed(1);
+        const brand = p.brands ? `<span class="food-result-brand">${esc(p.brands)}</span>` : '';
+        return `<div class="food-result-item" data-carbs="${carbs}">
+            <div class="food-result-name">${esc(p.product_name)}${brand}</div>
+            <div class="food-result-carbs">${carbs}g / 100g</div>
+        </div>`;
+    }).join('');
 
-        // Add entry to history
-        function addToHistory(entry) {
-            const history = loadHistory();
-            history.unshift(entry);
-            if (history.length > 100) {
-                history.pop();
-            }
-            saveHistory(history);
-        }
-
-        // Initialize settings on page load
-        function initializeSettings() {
-            const settings = loadSettings();
-            document.getElementById('targetBS').value = settings.targetBS;
-            document.getElementById('carbRatio').value = settings.carbRatio;
-            document.getElementById('correctionFactor').value = settings.correctionFactor;
-            document.getElementById('units').value = settings.units;
-        }
-
-        // Open settings modal
-        function openSettings() {
-            document.getElementById('settingsModal').classList.add('show');
-            initializeSettings();
-        }
-
-        // Close settings modal
-        function closeSettings() {
-            document.getElementById('settingsModal').classList.remove('show');
-        }
-
-        // Save settings
-        function saveSettings() {
-            const settings = {
-                targetBS: parseFloat(document.getElementById('targetBS').value),
-                carbRatio: parseFloat(document.getElementById('carbRatio').value),
-                correctionFactor: parseFloat(document.getElementById('correctionFactor').value),
-                units: document.getElementById('units').value
-            };
-
-            if (isNaN(settings.targetBS) || settings.targetBS <= 0) {
-                alert('Please enter a valid target blood sugar');
-                return;
-            }
-            if (isNaN(settings.carbRatio) || settings.carbRatio <= 0) {
-                alert('Please enter a valid insulin-to-carb ratio');
-                return;
-            }
-            if (isNaN(settings.correctionFactor) || settings.correctionFactor <= 0) {
-                alert('Please enter a valid correction factor');
-                return;
-            }
-
-            saveSettingsToStorage(settings);
-            
-            const btn = document.getElementById('saveSettingsBtn');
-            const originalText = btn.textContent;
-            btn.textContent = '✓ Saved!';
-            btn.style.background = '#28a745';
-            setTimeout(() => {
-                closeSettings();
-                setTimeout(() => {
-                    btn.textContent = originalText;
-                    btn.style.background = '';
-                }, 300);
-            }, 1000);
-        }
-
-        // Calculate insulin dose
-        function calculateDose() {
-            const settings = loadSettings();
-            
-            const carbs = parseFloat(document.getElementById('carbs').value);
-            const bloodSugar = parseFloat(document.getElementById('bloodSugar').value);
-
-            if (isNaN(carbs) || carbs < 0) {
-                alert('Please enter a valid carbohydrate amount');
-                return;
-            }
-            if (isNaN(bloodSugar) || bloodSugar < 0) {
-                alert('Please enter a valid blood sugar level');
-                return;
-            }
-
-            const carbDose = carbs / settings.carbRatio;
-            const bgDifference = bloodSugar - settings.targetBS;
-            const correctionDose = bgDifference / settings.correctionFactor;
-            const totalDose = Math.max(0, carbDose + correctionDose);
-
-            document.getElementById('doseValue').textContent = totalDose.toFixed(1);
-            document.getElementById('carbDose').textContent = carbDose.toFixed(1) + ' units';
-            document.getElementById('correctionDose').textContent = correctionDose.toFixed(1) + ' units';
-            
-            const resultDiv = document.getElementById('result');
-            resultDiv.classList.remove('show');
-            setTimeout(() => {
-                resultDiv.classList.add('show');
-            }, 10);
-
-            const historyEntry = {
-                timestamp: new Date().toISOString(),
-                carbs: carbs,
-                bloodSugar: bloodSugar,
-                dose: totalDose,
-                carbDose: carbDose,
-                correctionDose: correctionDose,
-                settings: {
-                    targetBS: settings.targetBS,
-                    carbRatio: settings.carbRatio,
-                    correctionFactor: settings.correctionFactor,
-                    units: settings.units
-                }
-            };
-            addToHistory(historyEntry);
-
-            resultDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }
-
-        // Format date for display
-        function formatDate(isoString) {
-            const date = new Date(isoString);
-            const now = new Date();
-            const diffMs = now - date;
-            const diffMins = Math.floor(diffMs / 60000);
-            const diffHours = Math.floor(diffMs / 3600000);
-            const diffDays = Math.floor(diffMs / 86400000);
-
-            if (diffMins < 1) return 'Just now';
-            if (diffMins < 60) return `${diffMins} min${diffMins > 1 ? 's' : ''} ago`;
-            if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
-            if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
-            
-            return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        }
-
-        // Calculate statistics
-        function calculateStats(history) {
-            if (history.length === 0) return null;
-
-            const totalDoses = history.length;
-            const avgDose = history.reduce((sum, entry) => sum + entry.dose, 0) / totalDoses;
-            const avgBS = history.reduce((sum, entry) => sum + entry.bloodSugar, 0) / totalDoses;
-            const avgCarbs = history.reduce((sum, entry) => sum + entry.carbs, 0) / totalDoses;
-
-            return {
-                totalDoses,
-                avgDose: avgDose.toFixed(1),
-                avgBS: avgBS.toFixed(1),
-                avgCarbs: avgCarbs.toFixed(0)
-            };
-        }
-
-        // Display history
-        function displayHistory() {
-            const history = loadHistory();
-            const historyList = document.getElementById('historyList');
-            const historyStats = document.getElementById('historyStats');
-
-            if (history.length === 0) {
-                historyList.innerHTML = `
-                    <div class="history-empty">
-                        <div class="history-empty-icon">📊</div>
-                        <p>No history yet</p>
-                        <p style="font-size: 12px; margin-top: 10px;">Your dose calculations will appear here</p>
-                    </div>
-                `;
-                historyStats.innerHTML = '';
-                return;
-            }
-
-            const stats = calculateStats(history);
-            historyStats.innerHTML = `
-                <div class="history-stats">
-                    <h3 style="margin-bottom: 10px;">Statistics</h3>
-                    <div class="stats-grid">
-                        <div class="stat-item">
-                            <span class="stat-value">${stats.totalDoses}</span>
-                            <span class="stat-label">Total Doses</span>
-                        </div>
-                        <div class="stat-item">
-                            <span class="stat-value">${stats.avgDose}</span>
-                            <span class="stat-label">Avg Dose (units)</span>
-                        </div>
-                        <div class="stat-item">
-                            <span class="stat-value">${stats.avgBS}</span>
-                            <span class="stat-label">Avg Blood Sugar</span>
-                        </div>
-                        <div class="stat-item">
-                            <span class="stat-value">${stats.avgCarbs}</span>
-                            <span class="stat-label">Avg Carbs (g)</span>
-                        </div>
-                    </div>
-                </div>
-            `;
-
-            let html = '';
-            history.forEach((entry, index) => {
-                html += `
-                    <div class="history-item">
-                        <div class="history-header">
-                            <div class="history-date">${formatDate(entry.timestamp)}</div>
-                            <button class="delete-btn" data-index="${index}">Delete</button>
-                        </div>
-                        <div class="history-dose">${entry.dose.toFixed(1)} units</div>
-                        <div class="history-details">
-                            <div class="history-detail-item">
-                                <span class="history-detail-label">Blood Sugar</span>
-                                <span class="history-detail-value">${entry.bloodSugar} ${entry.settings.units === 'mgdl' ? 'mg/dL' : 'mmol/L'}</span>
-                            </div>
-                            <div class="history-detail-item">
-                                <span class="history-detail-label">Carbs</span>
-                                <span class="history-detail-value">${entry.carbs}g</span>
-                            </div>
-                            <div class="history-detail-item">
-                                <span class="history-detail-label">Carb Dose</span>
-                                <span class="history-detail-value">${entry.carbDose.toFixed(1)}u</span>
-                            </div>
-                            <div class="history-detail-item">
-                                <span class="history-detail-label">Correction</span>
-                                <span class="history-detail-value">${entry.correctionDose.toFixed(1)}u</span>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            });
-
-            html += `<button class="clear-history-btn" id="clearHistoryBtn">Clear All History</button>`;
-            historyList.innerHTML = html;
-
-            // Add event listeners to delete buttons
-            document.querySelectorAll('.delete-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const index = parseInt(this.getAttribute('data-index'));
-                    deleteHistoryEntry(index);
-                });
-            });
-
-            // Add event listener to clear history button
-            const clearBtn = document.getElementById('clearHistoryBtn');
-            if (clearBtn) {
-                clearBtn.addEventListener('click', clearHistory);
-            }
-        }
-
-        // Open history modal
-        function openHistory() {
-            document.getElementById('historyModal').classList.add('show');
-            displayHistory();
-        }
-
-        // Close history modal
-        function closeHistory() {
-            document.getElementById('historyModal').classList.remove('show');
-        }
-
-        // Delete single history entry
-        function deleteHistoryEntry(index) {
-            if (confirm('Delete this entry?')) {
-                const history = loadHistory();
-                history.splice(index, 1);
-                saveHistory(history);
-                displayHistory();
-            }
-        }
-
-        // Clear all history
-        function clearHistory() {
-            if (confirm('Are you sure you want to clear all history? This cannot be undone.')) {
-                saveHistory([]);
-                displayHistory();
-            }
-        }
-
-        // Initialize when page loads
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('Page loaded, initializing...');
-            
-            initializeSettings();
-            
-            // Add event listeners
-            document.getElementById('settingsBtn').addEventListener('click', openSettings);
-            document.getElementById('closeSettingsBtn').addEventListener('click', closeSettings);
-            document.getElementById('saveSettingsBtn').addEventListener('click', saveSettings);
-            
-            document.getElementById('historyBtn').addEventListener('click', openHistory);
-            document.getElementById('closeHistoryBtn').addEventListener('click', closeHistory);
-            
-            document.getElementById('calculateBtn').addEventListener('click', calculateDose);
-
-            // Handle Enter key
-            const inputs = document.querySelectorAll('input[type="number"]');
-            inputs.forEach(input => {
-                input.addEventListener('keypress', function(e) {
-                    if (e.key === 'Enter') {
-                        if (this.closest('#settingsModal')) {
-                            saveSettings();
-                        } else {
-                            calculateDose();
-                        }
-                    }
-                });
-            });
-
-            // Close modals when clicking outside
-            document.getElementById('settingsModal').addEventListener('click', function(e) {
-                if (e.target === this) {
-                    closeSettings();
-                }
-            });
-
-            document.getElementById('historyModal').addEventListener('click', function(e) {
-                if (e.target === this) {
-                    closeHistory();
-                }
-            });
-
-            console.log('Initialization complete!');
+    results.querySelectorAll('.food-result-item').forEach(el => {
+        el.addEventListener('click', () => {
+            results.querySelectorAll('.food-result-item').forEach(e => e.classList.remove('selected'));
+            el.classList.add('selected');
+            selectedCarbs100g = parseFloat(el.dataset.carbs);
+            portionRow.style.display = 'flex';
+            updatePortionCarbs();
         });
-    </script>
+    });
+}
+
+function updatePortionCarbs() {
+    if (selectedCarbs100g === null) return;
+    const g = parseFloat(document.getElementById('portionGrams').value) || 0;
+    document.getElementById('portionCarbs').textContent = ((selectedCarbs100g * g) / 100).toFixed(1) + 'g';
+}
+
+function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// Text search
+async function searchFood() {
+    const q = document.getElementById('foodSearchInput').value.trim();
+    if (!q) return;
+    const btn = document.getElementById('foodSearchBtn');
+    btn.disabled = true; btn.textContent = '…';
+    document.getElementById('foodSearchStatus').textContent = 'Searching…';
+    document.getElementById('foodResults').innerHTML = '';
+    document.getElementById('portionRow').style.display = 'none';
+    try {
+        const r = await fetch(`https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(q)}&search_simple=1&action=process&json=1&page_size=10&fields=product_name,brands,nutriments`);
+        const d = await r.json();
+        const products = (d.products || []).filter(p => p.product_name && p.nutriments && typeof p.nutriments['carbohydrates_100g'] === 'number');
+        displayFoodResults(products, 'No results with carb data found. Try a different term.');
+    } catch(e) {
+        document.getElementById('foodSearchStatus').textContent = 'Search failed — check your connection.';
+    }
+    btn.disabled = false; btn.textContent = 'Search';
+}
+
+// Barcode scanner
+let codeReader = null;
+
+async function openScanner() {
+    const modal = document.getElementById('scannerModal');
+    const statusEl = document.getElementById('scannerStatus');
+    modal.classList.add('show');
+    statusEl.className = 'scanner-status';
+    statusEl.textContent = 'Initialising camera…';
+
+    try {
+        codeReader = new ZXing.BrowserMultiFormatReader();
+        const devices = await ZXing.BrowserCodeReader.listVideoInputDevices();
+        const back = devices.find(d => /back|rear|environment/i.test(d.label)) || devices[devices.length - 1];
+
+        statusEl.textContent = 'Point camera at barcode…';
+
+        codeReader.decodeFromVideoDevice(back ? back.deviceId : undefined, 'scannerVideo', async (result, err) => {
+            if (result) {
+                const code = result.getText();
+                statusEl.className = 'scanner-status success';
+                statusEl.textContent = `Detected: ${code} — looking up…`;
+                codeReader.reset(); codeReader = null;
+                await lookupBarcode(code);
+            }
+        });
+    } catch(e) {
+        statusEl.className = 'scanner-status error';
+        statusEl.textContent = e.name === 'NotAllowedError'
+            ? 'Camera permission denied. Please allow camera access and try again.'
+            : 'Could not start camera. ' + e.message;
+    }
+}
+
+function closeScanner() {
+    if (codeReader) { codeReader.reset(); codeReader = null; }
+    document.getElementById('scannerModal').classList.remove('show');
+}
+
+async function lookupBarcode(barcode) {
+    document.getElementById('scannerModal').classList.remove('show');
+    const status = document.getElementById('foodSearchStatus');
+    document.getElementById('foodResults').innerHTML = '';
+    document.getElementById('portionRow').style.display = 'none';
+    selectedCarbs100g = null;
+    status.textContent = `Looking up barcode ${barcode}…`;
+
+    try {
+        const r = await fetch(`https://world.openfoodfacts.org/api/v0/product/${barcode}.json`);
+        const d = await r.json();
+        if (d.status !== 1 || !d.product) {
+            status.textContent = `Product not found for barcode ${barcode}. Try searching by name.`;
+            return;
+        }
+        const p = d.product;
+        if (!p.nutriments || typeof p.nutriments['carbohydrates_100g'] !== 'number') {
+            status.textContent = `Found "${p.product_name}" but carb data is missing. Try searching by name.`;
+            return;
+        }
+        displayFoodResults([p], '');
+        setTimeout(() => { const item = document.querySelector('.food-result-item'); if (item) item.click(); }, 50);
+    } catch(e) {
+        status.textContent = 'Lookup failed — check your connection.';
+    }
+}
+
+// Calculator
+function calculateDose() {
+    const s = loadSettings();
+    const carbs = parseFloat(document.getElementById('carbs').value);
+    const bs = parseFloat(document.getElementById('bloodSugar').value);
+    if (isNaN(carbs) || carbs < 0) return alert('Please enter a valid carbohydrate amount');
+    if (isNaN(bs) || bs < 0) return alert('Please enter a valid blood sugar level');
+
+    const carbDose = carbs / s.carbRatio;
+    const correctionDose = (bs - s.targetBS) / s.correctionFactor;
+    const total = Math.max(0, carbDose + correctionDose);
+
+    document.getElementById('doseValue').textContent = total.toFixed(1);
+    document.getElementById('carbDose').textContent = carbDose.toFixed(1) + ' units';
+    document.getElementById('correctionDose').textContent = correctionDose.toFixed(1) + ' units';
+
+    const r = document.getElementById('result');
+    r.classList.remove('show');
+    setTimeout(() => r.classList.add('show'), 10);
+    addToHistory({ timestamp: new Date().toISOString(), carbs, bloodSugar: bs, dose: total, carbDose, correctionDose, settings: {...s} });
+    r.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+// Settings UI
+function initializeSettings() {
+    const s = loadSettings();
+    document.getElementById('targetBS').value = s.targetBS;
+    document.getElementById('carbRatio').value = s.carbRatio;
+    document.getElementById('correctionFactor').value = s.correctionFactor;
+    document.getElementById('units').value = s.units;
+}
+function openSettings() { document.getElementById('settingsModal').classList.add('show'); initializeSettings(); }
+function closeSettings() { document.getElementById('settingsModal').classList.remove('show'); }
+function saveSettings() {
+    const s = {
+        targetBS: parseFloat(document.getElementById('targetBS').value),
+        carbRatio: parseFloat(document.getElementById('carbRatio').value),
+        correctionFactor: parseFloat(document.getElementById('correctionFactor').value),
+        units: document.getElementById('units').value
+    };
+    if (isNaN(s.targetBS) || s.targetBS <= 0) return alert('Please enter a valid target blood sugar');
+    if (isNaN(s.carbRatio) || s.carbRatio <= 0) return alert('Please enter a valid ICR');
+    if (isNaN(s.correctionFactor) || s.correctionFactor <= 0) return alert('Please enter a valid ISF');
+    saveSettingsToStorage(s);
+    const btn = document.getElementById('saveSettingsBtn');
+    btn.textContent = '✓ Saved!'; btn.style.background = '#28a745';
+    setTimeout(() => { closeSettings(); setTimeout(() => { btn.textContent = 'Save Settings'; btn.style.background = ''; }, 300); }, 1000);
+}
+
+// History UI
+function formatDate(iso) {
+    const d = new Date(iso), m = Math.floor((Date.now()-d)/60000);
+    if (m < 1) return 'Just now';
+    if (m < 60) return `${m} min${m>1?'s':''} ago`;
+    const h = Math.floor(m/60);
+    if (h < 24) return `${h} hour${h>1?'s':''} ago`;
+    const dy = Math.floor(h/24);
+    if (dy < 7) return `${dy} day${dy>1?'s':''} ago`;
+    return d.toLocaleDateString()+' '+d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+}
+function calcStats(h) {
+    if (!h.length) return null;
+    const n = h.length;
+    return { totalDoses: n, avgDose:(h.reduce((s,e)=>s+e.dose,0)/n).toFixed(1), avgBS:(h.reduce((s,e)=>s+e.bloodSugar,0)/n).toFixed(1), avgCarbs:Math.round(h.reduce((s,e)=>s+e.carbs,0)/n) };
+}
+function displayHistory() {
+    const history = loadHistory();
+    const list = document.getElementById('historyList');
+    const stats = document.getElementById('historyStats');
+    if (!history.length) {
+        list.innerHTML = `<div class="history-empty"><div class="history-empty-icon">📊</div><p>No history yet</p></div>`;
+        stats.innerHTML = ''; return;
+    }
+    const st = calcStats(history);
+    stats.innerHTML = `<div class="history-stats"><h3 style="margin-bottom:10px">Statistics</h3><div class="stats-grid">
+        <div class="stat-item"><span class="stat-value">${st.totalDoses}</span><span class="stat-label">Total Doses</span></div>
+        <div class="stat-item"><span class="stat-value">${st.avgDose}</span><span class="stat-label">Avg Dose (units)</span></div>
+        <div class="stat-item"><span class="stat-value">${st.avgBS}</span><span class="stat-label">Avg Blood Sugar</span></div>
+        <div class="stat-item"><span class="stat-value">${st.avgCarbs}</span><span class="stat-label">Avg Carbs (g)</span></div>
+    </div></div>`;
+    list.innerHTML = history.map((e,i) => `
+        <div class="history-item">
+            <div class="history-header"><div class="history-date">${formatDate(e.timestamp)}</div><button class="delete-btn" data-index="${i}">Delete</button></div>
+            <div class="history-dose">${e.dose.toFixed(1)} units</div>
+            <div class="history-details">
+                <div class="history-detail-item"><span class="history-detail-label">Blood Sugar</span><span class="history-detail-value">${e.bloodSugar} ${e.settings.units==='mgdl'?'mg/dL':'mmol/L'}</span></div>
+                <div class="history-detail-item"><span class="history-detail-label">Carbs</span><span class="history-detail-value">${e.carbs}g</span></div>
+                <div class="history-detail-item"><span class="history-detail-label">Carb Dose</span><span class="history-detail-value">${e.carbDose.toFixed(1)}u</span></div>
+                <div class="history-detail-item"><span class="history-detail-label">Correction</span><span class="history-detail-value">${e.correctionDose.toFixed(1)}u</span></div>
+            </div>
+        </div>`).join('')
+    + `<button class="clear-history-btn" id="clearHistoryBtn">Clear All History</button>`;
+    list.querySelectorAll('.delete-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            if (confirm('Delete this entry?')) { const h=loadHistory(); h.splice(parseInt(btn.dataset.index),1); saveHistory(h); displayHistory(); }
+        });
+    });
+    const cb = document.getElementById('clearHistoryBtn');
+    if (cb) cb.addEventListener('click', () => { if (confirm('Clear all history?')) { saveHistory([]); displayHistory(); } });
+}
+function openHistory() { document.getElementById('historyModal').classList.add('show'); displayHistory(); }
+function closeHistory() { document.getElementById('historyModal').classList.remove('show'); }
+
+// Init
+document.addEventListener('DOMContentLoaded', () => {
+    initializeSettings();
+    document.getElementById('settingsBtn').addEventListener('click', openSettings);
+    document.getElementById('closeSettingsBtn').addEventListener('click', closeSettings);
+    document.getElementById('saveSettingsBtn').addEventListener('click', saveSettings);
+    document.getElementById('historyBtn').addEventListener('click', openHistory);
+    document.getElementById('closeHistoryBtn').addEventListener('click', closeHistory);
+    document.getElementById('calculateBtn').addEventListener('click', calculateDose);
+    document.getElementById('foodSearchBtn').addEventListener('click', searchFood);
+    document.getElementById('foodSearchInput').addEventListener('keypress', e => { if (e.key==='Enter') searchFood(); });
+    document.getElementById('portionGrams').addEventListener('input', updatePortionCarbs);
+    document.getElementById('useCarbsBtn').addEventListener('click', () => {
+        if (selectedCarbs100g === null) return;
+        const g = parseFloat(document.getElementById('portionGrams').value) || 0;
+        document.getElementById('carbs').value = ((selectedCarbs100g * g) / 100).toFixed(1);
+        document.getElementById('carbs').focus();
+    });
+    document.getElementById('barcodeBtn').addEventListener('click', openScanner);
+    document.getElementById('scannerCloseBtn').addEventListener('click', closeScanner);
+    document.querySelectorAll('input[type="number"]').forEach(input => {
+        input.addEventListener('keypress', e => {
+            if (e.key==='Enter' && !input.closest('.food-search-section') && !input.closest('.food-portion-row')) {
+                if (input.closest('#settingsModal')) saveSettings(); else calculateDose();
+            }
+        });
+    });
+    document.getElementById('settingsModal').addEventListener('click', e => { if (e.target===e.currentTarget) closeSettings(); });
+    document.getElementById('historyModal').addEventListener('click', e => { if (e.target===e.currentTarget) closeHistory(); });
+});
+</script>
+
 </body>
 </html>
